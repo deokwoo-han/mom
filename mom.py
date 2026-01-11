@@ -2,28 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# --- 디자인 커스텀 (CSS) ---
-st.markdown("""
-    <style>
-    /* 전체 폰트 및 배경 부드럽게 */
-    .stApp {
-        background-color: #F8F9FA;
-    }
-    /* 버튼 디자인 변경 */
-    div.stButton > button:first-child {
-        background-color: #76BA99;
-        color: white;
-        border-radius: 20px;
-        border: none;
-        padding: 0.5rem 2rem;
-    }
-    /* 입력창 테두리 둥글게 */
-    .stTextInput>div>div>input {
-        border-radius: 10px;
-    }
-    </style>
-    """, unsafe_allow_ Harris=True)
-
 
 # --- 데이터 소스: 문서 기반 리스트 ---
 EMOTIONS = ["불안함", "초조함", "두려움", "죄책감", "무력감", "짜증남", "막막함", "슬픔", "후회", "창피함"]

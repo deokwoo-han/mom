@@ -1,11 +1,6 @@
 [theme]
-primaryColor = "#76BA99"          # 강조 색상 (부드러운 초록)
-backgroundColor = "#F8F9FA"       # 메인 배경 (연한 회색/화이트)
-secondaryBackgroundColor = "#E8EEE9" # 사이드바/입력창 배경
-textColor = "#2D3436"             # 글자 색상
+primaryColor = "#A3B18A"          # 차분한 올리브 그린 (선택 버튼용)
+backgroundColor = "#FDFCF8"       # 부드러운 아이보리 (배경)
+secondaryBackgroundColor = "#F3EFE0" # 리스트/박스 배경
+textColor = "#344E41"             # 짙은 녹색 (글자)
 font = "sans serif"
-
-[server]
-headless = true
-enableCORS = false
-enableXsrfProtection = false

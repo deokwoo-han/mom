@@ -2,65 +2,102 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
+# --- 페이지 설정 및 디자인 ---
+st.set_page_config(page_title="LAMP: 마음 관찰 앱", layout="wide")
 
-# --- 데이터 소스: 문서 기반 리스트 ---
-EMOTIONS = ["불안함", "초조함", "두려움", "죄책감", "무력감", "짜증남", "막막함", "슬픔", "후회", "창피함"]
-SENSATIONS = ["가슴 답답함", "심장 두근거림", "목에 이물감", "어깨/목 긴장", "배아픔/소화불량", "손발 차가움", "머리 무거움", "얕은 호흡"]
-CATEGORIES = ["소모적인 걱정 (통제 불가)", "과거 반추 (후회)", "생산적인 계획 (해결 가능)", "단순한 사실"]
+# CSS를 이용해 다중 선택 박스를 버튼(태그)처럼 보이게 최적화
+st.markdown("""
+    <style>
+    .stMultiSelect div div div div div {
+        background-color: #A3B18A !important;
+        color: white !important;
+        border-radius: 15px !important;
+    }
+    .main {
+        background-color: #FDFCF8;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# 데이터 저장소
-if 'worry_db' not in st.session_state:
-    st.session_state.worry_db = []
+# --- 데이터 베이스 (확장된 리스트) ---
+EMOTION_CHIPS = {
+    "불안/공포": ["초조함", "안절부절못함", "막연한 불안", "공포", "식은땀 나는 긴장", "압박감", "질식할 것 같음"],
+    "분노/짜증": ["욱함", "신경질", "억울함", "냉소적임", "부글부글함", "답답함", "짜증"],
+    "슬픔/무력": ["낙담", "허무함", "막막함", "외로움", "우울함", "자괴감", "의욕 없음"],
+    "자기비난/수치": ["후회", "죄책감", "민망함", "열등감", "부끄러움", "창피함"]
+}
 
-st.title("🕯️ LAMP 마음 치유 일기")
+SENSATION_CHIPS = {
+    "머리/얼굴": ["두통", "머리가 멍함", "얼굴 화끈거림", "눈의 피로", "턱 근육 긴장"],
+    "상체/호흡": ["가슴 답답함", "숨이 가쁨", "심장 두근거림", "목에 이물감", "명치 끝 통증"],
+    "근육/사지": ["어깨 결림", "손발 차가움", "손 떨림", "등 근육 긴장", "다리에 힘이 풀림"],
+    "소화기계": ["위가 뒤틀림", "복부 팽만감", "메스꺼움", "속쓰림"]
+}
 
-# --- 1단계: 생각 포착 ---
-st.subheader("1. 지금 잡힌 단어")
-word = st.text_input("머릿속에 떠오른 그 단어는?", placeholder="예: 어제 했던 말, 내일 발표...")
+if 'journal' not in st.session_state:
+    st.session_state.journal = []
 
-# --- 2단계: 감정 고르기 (멀티 선택) ---
-st.subheader("2. 어떤 감정들이 묻어있나요?")
-selected_emotions = st.multiselect("리스트에서 모두 골라주세요", EMOTIONS)
+# --- 앱 메인 UI ---
+st.title("🕯️ LAMP: 내 마음의 이름표")
+st.caption("문서 1-2부 기반: 걱정을 객관적으로 분류하고 신체 반응을 기록하세요.")
 
-# 감정 농도 (슬라이더)
-intensity = st.select_slider("감정의 총 농도", options=range(0, 101, 10), value=50)
+with st.container():
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.subheader("📍 1. 생각 포착하기")
+        thought = st.text_input("지금 머릿속을 스쳐간 생각/단어는?", placeholder="예: 어제 했던 실수...")
 
-# --- 3단계: 신체 감각 고르기 ---
-st.subheader("3. 몸의 어디가 반응하나요?")
-selected_sensations = st.multiselect("느껴지는 신체 감각을 골라주세요", SENSATIONS)
+        st.subheader("🎭 2. 감정 골라 담기")
+        all_selected_emotions = []
+        for category, emotions in EMOTION_CHIPS.items():
+            selected = st.multiselect(f"[{category}]", emotions)
+            all_selected_emotions.extend(selected)
+        
+        intensity = st.slider("감정의 총 농도 (%)", 0, 100, 50)
 
-# --- 4단계: 이름표 및 관찰 ---
-st.subheader("4. 이름표 붙이기 & 관찰자 기록")
-category = st.selectbox("생각의 이름표", CATEGORIES)
-observer_text = st.text_area("제3자의 시선으로 기록 (그/그녀는~)", placeholder="그는 지금 불안을 관찰하고 있다...")
+    with col2:
+        st.subheader("⚡ 3. 신체 감각 체크")
+        all_selected_sensations = []
+        for category, sensations in SENSATION_CHIPS.items():
+            selected = st.multiselect(f"[{category}]", sensations)
+            all_selected_sensations.extend(selected)
 
-if st.button("일지에 저장하기"):
-    if word and selected_emotions:
-        new_log = {
-            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "word": word,
-            "emotions": ", ".join(selected_emotions),
-            "intensity": f"{intensity}%",
-            "sensations": ", ".join(selected_sensations),
-            "category": category,
-            "observer": observer_text
+        st.subheader("🏷️ 4. 이름표 & 관찰")
+        label = st.selectbox("생각의 성격 (문서 기반 분류)", ["소모적인 걱정", "과거 반추(되새김)", "실행 가능한 계획", "단순 사실"])
+        observer_log = st.text_area("제3자의 시선 (예: 그녀는 지금 과거를 후회 중이다)", height=100)
+
+if st.button("✨ 오늘의 마음 저장하기", use_container_width=True):
+    if thought and all_selected_emotions:
+        entry = {
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "thought": thought,
+            "emotions": all_selected_emotions,
+            "intensity": intensity,
+            "sensations": all_selected_sensations,
+            "label": label,
+            "observer": observer_log
         }
-        st.session_state.worry_db.append(new_log)
-        st.success("오늘의 마음을 저장했습니다.")
+        st.session_state.journal.append(entry)
+        st.success("걱정 모니터링 일지에 추가되었습니다!")
     else:
-        st.error("단어와 감정을 최소 하나 이상 선택해주세요.")
+        st.error("생각과 감정을 최소 하나 이상 선택해주세요.")
 
+# --- 종합 리스트 확인 (사용자 요청사항) ---
 st.divider()
-
-# --- 5단계: 리스트 확인 (사용자 요청사항) ---
-st.subheader("📂 나의 걱정 모니터링 기록")
-if not st.session_state.worry_db:
-    st.caption("저장된 기록이 없습니다.")
+st.subheader("📖 나의 걱정 모니터링 히스토리")
+if not st.session_state.journal:
+    st.info("아직 기록이 없습니다. 위에서 첫 마음을 기록해보세요.")
 else:
-    for i, log in enumerate(reversed(st.session_state.worry_db)):
-        # 클릭하면 상세 내용이 나오는 구조
-        with st.expander(f"📌 {log['date']} | {log['word']} ({log['intensity']})"):
-            st.write(f"**🏷️ 이름표:** {log['category']}")
-            st.write(f"**🎭 담긴 감정:** {log['emotions']}")
-            st.write(f"**⚡ 신체 감각:** {log['sensations']}")
-            st.info(f"**🕵️ 관찰 기록:** {log['observer']}")
+    for i, log in enumerate(reversed(st.session_state.journal)):
+        # 리스트 중 하나를 누르면 상세 내용이 보이는 Expander 기능
+        with st.expander(f"📌 [{log['label']}] {log['thought']} | 농도: {log['intensity']}%"):
+            c1, c2 = st.columns(2)
+            with c1:
+                st.write("**🎭 느낀 감정:**")
+                st.write(", ".join(log['emotions']))
+                st.write("**⚡ 신체 반응:**")
+                st.write(", ".join(log['sensations']) if log['sensations'] else "특이사항 없음")
+            with c2:
+                st.write("**🕵️ 관찰자 기록 (제3자의 시선):**")
+                st.info(log['observer'] if log['observer'] else "기록 없음")
